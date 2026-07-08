@@ -1,87 +1,345 @@
-
-<h2 class="sr-only">SimiliaSync build plan tracker — progress across all phases</h2>
-
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SimiliaSync — Build Tracker</title>
 <style>
+:root {
+  --bg: #f8fafc; --surface: #ffffff; --surface2: #f1f5f9;
+  --border: #e2e8f0; --text: #0f172a; --muted: #64748b; --faint: #94a3b8;
+  --teal: #0d9488; --teal-light: #f0fdfa; --teal-border: #99f6e4;
+  --green: #16a34a; --green-bg: #f0fdf4; --green-border: #86efac;
+  --amber: #d97706; --amber-bg: #fffbeb; --amber-border: #fcd34d;
+  --slate-bg: #f8fafc; --slate-border: #e2e8f0;
+  --red: #dc2626; --red-bg: #fef2f2;
+  --purple: #7c3aed; --blue: #2563eb;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --radius: 12px;
+}
+[data-theme="dark"] {
+  --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+  --border: #334155; --text: #f1f5f9; --muted: #94a3b8; --faint: #64748b;
+  --teal-light: #042f2e; --teal-border: #115e59;
+  --green-bg: #052e16; --green-border: #166534;
+  --amber-bg: #1c1400; --amber-border: #78350f;
+  --slate-bg: #1e293b; --slate-border: #334155;
+  --red-bg: #1c0a0a; --shadow: 0 1px 3px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.3);
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--font-sans); }
-.tracker { padding: 1rem 0; }
-.header { margin-bottom: 1.5rem; }
-.header h1 { font-size: 18px; font-weight: 500; color: var(--text-primary); margin-bottom: 4px; }
-.header p { font-size: 13px; color: var(--text-secondary); }
-.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
-.stat { background: var(--surface-1); border-radius: var(--radius); padding: 12px 14px; }
-.stat-val { font-size: 22px; font-weight: 500; color: var(--text-primary); }
-.stat-lbl { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-.stat-val.done { color: var(--text-success); }
-.stat-val.prog { color: var(--text-warning); }
-.stat-val.todo { color: var(--text-muted); }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
+a { color: var(--teal); text-decoration: none; }
 
-.phase { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
-.phase-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; }
-.phase-header:hover { background: var(--surface-1); }
-.phase-num { font-size: 11px; font-weight: 500; color: var(--text-muted); background: var(--surface-0); border-radius: 4px; padding: 2px 7px; }
-.phase-title { flex: 1; font-size: 14px; font-weight: 500; color: var(--text-primary); }
-.phase-meta { font-size: 12px; color: var(--text-muted); }
-.progress-bar { height: 4px; background: var(--surface-0); }
-.progress-fill { height: 100%; border-radius: 0; transition: width 0.4s ease; }
-.fill-done { background: var(--fill-success); }
-.fill-part { background: var(--fill-warning); }
-.fill-todo { background: var(--border); }
+/* Layout */
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100; display: flex; flex-direction: column; }
+.main { margin-left: 220px; flex: 1; min-height: 100vh; }
+@media (max-width: 768px) { .sidebar { transform: translateX(-100%); transition: .2s; } .sidebar.open { transform: none; } .main { margin-left: 0; } .overlay { display: block !important; } }
 
-.items { padding: 0 16px 14px; display: none; }
-.items.open { display: block; }
-.section-label { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 12px 0 6px; }
-.item { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; border-bottom: 0.5px solid var(--border); }
-.item:last-child { border-bottom: none; }
-.status-icon { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-.s-done { background: var(--bg-success); }
-.s-done i { color: var(--text-success); font-size: 11px; }
-.s-part { background: var(--bg-warning); }
-.s-part i { color: var(--text-warning); font-size: 11px; }
-.s-todo { background: var(--surface-0); border: 0.5px solid var(--border); }
-.s-todo i { color: var(--text-muted); font-size: 11px; }
-.item-text { flex: 1; font-size: 13px; color: var(--text-primary); line-height: 1.5; }
-.item-note { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
-.badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
-.b-done { background: var(--bg-success); color: var(--text-success); }
-.b-part { background: var(--bg-warning); color: var(--text-warning); }
-.b-todo { background: var(--surface-0); border: 0.5px solid var(--border); color: var(--text-muted); }
-.chevron { font-size: 14px; color: var(--text-muted); transition: transform 0.2s; }
-.chevron.open { transform: rotate(180deg); }
-.legend { display: flex; gap: 16px; margin-bottom: 1rem; }
-.leg { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
-.leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+/* Sidebar */
+.sidebar-logo { padding: 20px 16px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo h2 { font-size: 15px; font-weight: 700; color: var(--teal); }
+.sidebar-logo p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.sidebar-nav { padding: 12px 8px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--muted); transition: .15s; border: none; background: none; width: 100%; text-align: left; }
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: var(--teal-light); color: var(--teal); }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.sidebar-footer { padding: 12px 8px; border-top: 1px solid var(--border); }
+.theme-btn { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.theme-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+/* Top bar */
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; }
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar h1 { font-size: 16px; font-weight: 700; }
+.topbar .sub { font-size: 12px; color: var(--muted); }
+.hamburger { display: none; background: none; border: none; cursor: pointer; color: var(--text); padding: 4px; }
+@media (max-width: 768px) { .hamburger { display: block; } }
+.badge-updated { font-size: 11px; background: var(--teal-light); color: var(--teal); border: 1px solid var(--teal-border); padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+
+/* Page sections */
+.page { display: none; padding: 24px; }
+.page.active { display: block; }
+
+/* Summary cards */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.stat-card .val { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.stat-card .lbl { font-size: 12px; color: var(--muted); font-weight: 500; }
+.stat-card .sub { font-size: 11px; color: var(--faint); margin-top: 2px; }
+.c-green { color: var(--green); } .c-amber { color: var(--amber); } .c-muted { color: var(--muted); } .c-teal { color: var(--teal); } .c-red { color: var(--red); }
+
+/* Section header */
+.sec-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.sec-title .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+
+/* Phase cards */
+.phase-grid { display: grid; gap: 12px; }
+.phase-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); transition: .15s; }
+.phase-card:hover { box-shadow: var(--shadow-md); }
+.phase-header { padding: 14px 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; user-select: none; }
+.phase-num { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 20px; background: var(--surface2); color: var(--muted); flex-shrink: 0; }
+.phase-info { flex: 1; min-width: 0; }
+.phase-title { font-size: 14px; font-weight: 600; }
+.phase-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.phase-stats { text-align: right; flex-shrink: 0; }
+.phase-pct { font-size: 18px; font-weight: 800; }
+.phase-count { font-size: 11px; color: var(--muted); }
+.chev { width: 16px; height: 16px; color: var(--faint); transition: transform .2s; flex-shrink: 0; }
+.chev.open { transform: rotate(180deg); }
+.phase-bar { height: 3px; background: var(--surface2); }
+.phase-fill { height: 100%; transition: width .5s ease; border-radius: 0; }
+.phase-body { display: none; padding: 0 16px 14px; border-top: 1px solid var(--border); }
+.phase-body.open { display: block; }
+.sec-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); margin: 14px 0 6px; }
+.task { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.task:last-child { border-bottom: none; }
+.task-icon { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.t-done { background: var(--green-bg); } .t-done svg { color: var(--green); }
+.t-part { background: var(--amber-bg); } .t-part svg { color: var(--amber); }
+.t-todo { background: var(--surface2); border: 1px solid var(--border); } .t-todo svg { color: var(--faint); }
+.task-body { flex: 1; min-width: 0; }
+.task-name { font-size: 13px; line-height: 1.4; }
+.task-note { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.task-badge { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 20px; flex-shrink: 0; margin-top: 2px; }
+.b-done { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.b-part { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+.b-todo { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+/* Gantt */
+.gantt-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.gantt-header { display: flex; border-bottom: 1px solid var(--border); background: var(--surface2); }
+.gantt-phase-col { width: 200px; padding: 10px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); flex-shrink: 0; }
+.gantt-weeks { flex: 1; display: flex; }
+.gantt-week { flex: 1; padding: 10px 4px; font-size: 10px; font-weight: 600; color: var(--muted); text-align: center; border-left: 1px solid var(--border); }
+.gantt-row { display: flex; border-bottom: 1px solid var(--border); align-items: center; min-height: 44px; }
+.gantt-row:last-child { border-bottom: none; }
+.gantt-row:hover { background: var(--surface2); }
+.gantt-label { width: 200px; padding: 8px 16px; flex-shrink: 0; }
+.gantt-label .p { font-size: 12px; font-weight: 600; }
+.gantt-label .s { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.gantt-track { flex: 1; position: relative; padding: 8px 0; display: flex; align-items: center; }
+.gantt-bg-week { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--border); }
+.gantt-bar { position: absolute; height: 22px; border-radius: 6px; display: flex; align-items: center; padding: 0 8px; font-size: 10px; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; transition: .2s; }
+.gantt-bar:hover { opacity: .85; transform: scaleY(1.1); }
+.gb-done { background: linear-gradient(90deg, #0d9488, #059669); }
+.gb-part { background: linear-gradient(90deg, #d97706, #f59e0b); }
+.gb-todo { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+.gantt-milestone { position: absolute; width: 10px; height: 10px; background: var(--red); border-radius: 50%; top: 50%; transform: translateY(-50%); z-index: 2; }
+.now-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--red); opacity: .7; z-index: 10; }
+.now-label { position: absolute; top: 2px; font-size: 9px; font-weight: 700; color: var(--red); transform: translateX(-50%); white-space: nowrap; }
+
+/* Donut chart */
+.donut-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* Phase progress bars */
+.phase-bars { display: grid; gap: 10px; }
+.pbar-row { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+.pbar-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.pbar-name { font-size: 13px; font-weight: 600; }
+.pbar-pct { font-size: 13px; font-weight: 700; }
+.pbar-track { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.pbar-fill { height: 100%; border-radius: 4px; transition: width .6s ease; }
+.pbar-meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* Edit mode */
+.edit-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+.btn { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; transition: .15s; display: flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--teal); color: var(--teal); }
+.btn-primary { background: var(--teal); color: white; border-color: var(--teal); }
+.btn-primary:hover { background: #0f766e; color: white; }
+.btn-danger { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+.edit-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); font-size: 13px; }
+.edit-table th { background: var(--surface2); padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--border); }
+.edit-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.edit-table tr:last-child td { border-bottom: none; }
+.edit-table tr:hover td { background: var(--surface2); }
+.edit-table input, .edit-table select, .edit-table textarea { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 12px; background: var(--surface); color: var(--text); outline: none; font-family: inherit; }
+.edit-table input:focus, .edit-table select:focus { border-color: var(--teal); }
+.edit-table textarea { resize: vertical; min-height: 36px; }
+select.status-sel { padding: 4px 6px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.sel-done { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+.sel-part { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-border); }
+.sel-todo { background: var(--surface2); color: var(--muted); border-color: var(--border); }
+.del-btn { background: none; border: none; cursor: pointer; color: var(--faint); padding: 4px; border-radius: 4px; }
+.del-btn:hover { color: var(--red); background: var(--red-bg); }
+
+/* Toast */
+#toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--teal); color: white; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-md); opacity: 0; transition: opacity .2s; pointer-events: none; }
+#toast.show { opacity: 1; }
+
+/* Overlay */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 90; }
+
+/* Activity feed */
+.activity-list { display: grid; gap: 8px; }
+.activity-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start; }
+.activity-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.activity-text { font-size: 13px; line-height: 1.5; }
+.activity-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* Responsive */
+@media (max-width: 600px) { .page { padding: 16px; } .stat-grid { grid-template-columns: repeat(2, 1fr); } .gantt-phase-col, .gantt-label { width: 100px; } }
+
+/* SVG donut */
+.donut-svg { overflow: visible; }
+.donut-center-text { font-family: inherit; }
 </style>
+</head>
+<body>
 
-<div class="tracker">
-  <div class="header">
-    <h1>SimiliaSync — build tracker</h1>
-    <p>Master plan progress · Last updated July 2026</p>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<div id="toast"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h2>🏥 SimiliaSync</h2>
+      <p>Build Tracker v2.0</p>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="showPage('overview',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </button>
+      <button class="nav-item" onclick="showPage('phases',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        All Phases
+      </button>
+      <button class="nav-item" onclick="showPage('gantt',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h4v4H3zm0 8h8v4H3zm6-8h8v4H9zm6 8h6v4h-6z"/></svg>
+        Gantt Chart
+      </button>
+      <button class="nav-item" onclick="showPage('analytics',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10m-6 10V4M6 20v-6"/></svg>
+        Analytics
+      </button>
+      <button class="nav-item" onclick="showPage('edit',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Edit Tasks
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="theme-btn" onclick="toggleTheme()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" id="theme-icon"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span id="theme-label">Dark mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" onclick="toggleSidebar()">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+        <div>
+          <div class="topbar h1" id="page-title" style="font-size:15px;font-weight:700;">Overview</div>
+          <div class="sub" id="page-sub">Master build plan · Last updated <span id="last-updated">loading…</span></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="badge-updated" id="overall-pct-badge">—% done</span>
+        <button class="btn btn-primary" onclick="saveData()" style="font-size:11px;padding:6px 12px;">💾 Save</button>
+      </div>
+    </div>
+
+    <!-- OVERVIEW PAGE -->
+    <div class="page active" id="page-overview">
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <div class="sec-title">
+        Phase progress
+        <span class="tag" style="background:var(--teal-light);color:var(--teal);border:1px solid var(--teal-border);">7 phases</span>
+      </div>
+      <div class="phase-bars" id="phase-bars"></div>
+
+      <div class="sec-title" style="margin-top:24px;">Recent activity</div>
+      <div class="activity-list" id="activity-list"></div>
+    </div>
+
+    <!-- ALL PHASES PAGE -->
+    <div class="page" id="page-phases">
+      <div class="phase-grid" id="phases-list"></div>
+    </div>
+
+    <!-- GANTT PAGE -->
+    <div class="page" id="page-gantt">
+      <div class="sec-title">Development timeline
+        <span class="tag" style="background:var(--red-bg);color:var(--red);">▐ = current week</span>
+      </div>
+      <div class="gantt-wrap" id="gantt-chart" style="overflow-x:auto;"></div>
+    </div>
+
+    <!-- ANALYTICS PAGE -->
+    <div class="page" id="page-analytics">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;">
+        <div>
+          <div class="sec-title">Overall completion</div>
+          <div class="gantt-wrap" style="padding:24px;">
+            <div class="donut-wrap" id="donut-wrap"></div>
+          </div>
+        </div>
+        <div>
+          <div class="sec-title">Phase breakdown</div>
+          <div class="gantt-wrap" style="padding:16px 20px;">
+            <div id="phase-breakdown"></div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:20px;">
+        <div class="sec-title">Task status by phase</div>
+        <div class="gantt-wrap" style="overflow-x:auto;padding:0;">
+          <table class="edit-table" id="analytics-table">
+            <thead><tr>
+              <th>Phase</th><th>Done</th><th>Partial</th><th>Todo</th><th>Total</th><th>Progress</th>
+            </tr></thead>
+            <tbody id="analytics-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDIT PAGE -->
+    <div class="page" id="page-edit">
+      <div class="edit-controls">
+        <select id="edit-phase-select" class="btn" onchange="renderEditTable()" style="cursor:pointer;"></select>
+        <button class="btn btn-primary" onclick="addTask()">+ Add task</button>
+        <button class="btn" onclick="exportJSON()">⬇ Export JSON</button>
+        <button class="btn" onclick="document.getElementById('import-file').click()">⬆ Import JSON</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)" />
+        <span style="font-size:12px;color:var(--muted);margin-left:4px;">Changes auto-save to browser. Use Export to save to repo.</span>
+      </div>
+      <div class="gantt-wrap" style="overflow-x:auto;padding:0;">
+        <table class="edit-table" id="edit-table">
+          <thead><tr>
+            <th style="width:40%">Task</th>
+            <th style="width:15%">Section</th>
+            <th style="width:10%">Status</th>
+            <th>Notes</th>
+            <th style="width:40px"></th>
+          </tr></thead>
+          <tbody id="edit-tbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
-
-  <div class="summary-grid">
-    <div class="stat"><div class="stat-val done">68%</div><div class="stat-lbl">Overall done</div></div>
-    <div class="stat"><div class="stat-val done">47</div><div class="stat-lbl">Tasks complete</div></div>
-    <div class="stat"><div class="stat-val prog">12</div><div class="stat-lbl">In progress / partial</div></div>
-    <div class="stat"><div class="stat-val todo">31</div><div class="stat-lbl">Not started</div></div>
-  </div>
-
-  <div class="legend">
-    <div class="leg"><div class="leg-dot" style="background:var(--fill-success)"></div>Complete</div>
-    <div class="leg"><div class="leg-dot" style="background:var(--fill-warning)"></div>Partial / in progress</div>
-    <div class="leg"><div class="leg-dot" style="background:var(--border)"></div>Not started</div>
-  </div>
-
-  <div id="phases"></div>
 </div>
 
 <script>
-const phases = [
-  {
-    num: 'Phase 0',
-    title: 'Foundation — infra, DB, auth',
-    week: 'Week 1–2',
-    sections: [
+// ── DATA ──────────────────────────────────────────────────────
+const DEFAULT_DATA = {
+  lastUpdated: 'July 8, 2026',
+  phases: [
+    { id: 0, num: 'Phase 0', title: 'Foundation — infra, DB, auth', week: 'Week 1–2', startWeek: 1, durationWeeks: 2, sections: [
       { label: 'Infrastructure', items: [
         { t: 'Purchase similiasync.com domain', s: 'done' },
         { t: 'Vercel account + GitHub repo connected', s: 'done' },
@@ -89,7 +347,7 @@ const phases = [
         { t: 'pgvector extension enabled', s: 'todo', note: 'Needed for Phase 1 knowledge base' },
         { t: 'Environment variables configured', s: 'done', note: 'Anthropic, Supabase, Razorpay, Resend' },
         { t: 'www.similiasync.com + subdomains on Vercel', s: 'done' },
-        { t: 'Private GitHub repo — no API keys committed', s: 'part', note: 'Keys were in zip; should rotate and gitignore' },
+        { t: 'Private GitHub repo — no API keys committed', s: 'part', note: 'Keys were in zip; rotate and gitignore' },
       ]},
       { label: 'Database schema', items: [
         { t: 'users table (doctors)', s: 'done' },
@@ -102,7 +360,7 @@ const phases = [
         { t: 'case_embeddings table with vector(1536)', s: 'todo' },
         { t: 'api_usage_logs table', s: 'todo' },
         { t: 'match_knowledge similarity search function', s: 'todo' },
-        { t: 'Row Level Security on all tables', s: 'todo', note: 'Tables are public schema, no RLS yet' },
+        { t: 'Row Level Security on all tables', s: 'part', note: 'SET LOCAL added; DB-level RLS migration written' },
       ]},
       { label: 'Auth', items: [
         { t: 'Google OAuth login flow', s: 'done' },
@@ -110,16 +368,12 @@ const phases = [
         { t: 'Admin approval gate before access', s: 'done' },
         { t: 'Admin dashboard with approve / reject / revoke', s: 'done' },
         { t: 'API key auth on all routes', s: 'done' },
+        { t: 'Admin password moved to backend (not frontend bundle)', s: 'done' },
+        { t: 'LocalStorage auth bypass blocked (server re-verify)', s: 'done' },
         { t: 'JWT-based auth (Supabase Auth)', s: 'todo', note: 'Currently using shared API key, not per-user JWT' },
-        { t: 'One doctor cannot access another doctor\'s data (RLS)', s: 'part', note: 'Separated by doctor_id filter, but no DB-level RLS enforcement' },
       ]},
-    ]
-  },
-  {
-    num: 'Phase 1',
-    title: 'Knowledge base — ingest all books',
-    week: 'Week 2–3',
-    sections: [
+    ]},
+    { id: 1, num: 'Phase 1', title: 'Knowledge base — ingest all books', week: 'Week 3–4', startWeek: 3, durationWeeks: 2, sections: [
       { label: 'Document collection', items: [
         { t: 'Collect PDFs — Kent, Boericke, Murphy, Clarke, Allen', s: 'todo' },
         { t: 'Collect additional books — Phatak, Boger, Hering', s: 'todo' },
@@ -134,28 +388,25 @@ const phases = [
         { t: 'Batch insert into knowledge_chunks table', s: 'todo' },
         { t: 'Quality checks — spot check 20 chunks', s: 'todo' },
       ]},
-    ]
-  },
-  {
-    num: 'Phase 2',
-    title: 'Core product — chatbot + credits',
-    week: 'Week 3–6',
-    sections: [
+    ]},
+    { id: 2, num: 'Phase 2', title: 'Core product — chatbot + credits', week: 'Week 3–6', startWeek: 3, durationWeeks: 4, sections: [
       { label: 'Case taking', items: [
         { t: 'AI case taking chatbot (Dr. Hemeo)', s: 'done' },
         { t: 'LSMC structured intake dialogue', s: 'done' },
-        { t: 'Streaming conversation via Groq/Claude', s: 'done' },
+        { t: 'AI proxy — API key off frontend', s: 'done' },
+        { t: 'Multi-provider switching (Groq/Claude/OpenAI)', s: 'done' },
         { t: 'Conversation history saved to DB', s: 'done' },
         { t: 'Patient intake form (name, age, gender, complaint)', s: 'done' },
         { t: 'RAG retrieval — inject knowledge into case context', s: 'todo', note: 'Currently using LLM only, no repertory RAG' },
         { t: 'Cap at 20 exchanges, prompt for analysis', s: 'todo' },
       ]},
       { label: 'Symptom extraction + remedy analysis', items: [
-        { t: 'Extract rubrics from conversation (JSON mode)', s: 'done', note: 'Part of case analysis flow' },
+        { t: 'Extract rubrics from conversation (JSON mode)', s: 'done' },
         { t: 'Remedy differential with Kent reasoning', s: 'done' },
+        { t: 'Claude Haiku for chatbot, Sonnet for analysis', s: 'done' },
         { t: 'RAG retrieval from knowledge_chunks for remedy analysis', s: 'todo' },
-        { t: 'Batch API for case report generation', s: 'todo', note: 'Currently synchronous; Batch API not used' },
-        { t: 'Doctor\'s past similar cases in RAG context', s: 'todo' },
+        { t: 'Batch API for case report generation', s: 'todo' },
+        { t: "Doctor's past similar cases in RAG context", s: 'todo' },
       ]},
       { label: 'Case paper + printing', items: [
         { t: 'Clinical summary case paper (print)', s: 'done' },
@@ -170,55 +421,41 @@ const phases = [
         { t: 'Hard block at case create if credits = 0', s: 'done' },
         { t: 'Credit balance shown in dashboard', s: 'done' },
         { t: 'Admin can grant credits manually', s: 'done' },
-        { t: 'Atomic stored procedure for credit deduction', s: 'todo', note: 'Currently UPDATE not atomic stored procedure' },
+        { t: 'Atomic stored procedure for credit deduction', s: 'todo' },
         { t: 'Low-credit alert at 20 and 5 remaining', s: 'part', note: 'UI warning at ≤2, no email alert yet' },
       ]},
-    ]
-  },
-  {
-    num: 'Phase 3',
-    title: 'Payments — Razorpay + plans',
-    week: 'Week 6–8',
-    sections: [
+    ]},
+    { id: 3, num: 'Phase 3', title: 'Payments + email notifications', week: 'Week 6–8', startWeek: 6, durationWeeks: 2, sections: [
       { label: 'Razorpay integration', items: [
         { t: 'Razorpay order creation endpoint', s: 'done' },
         { t: 'Payment signature verification', s: 'done' },
         { t: 'Credit grant on payment success', s: 'done' },
         { t: 'Top-up pack flow', s: 'done' },
         { t: 'Annual plan toggle (15% discount)', s: 'done' },
-        { t: 'Create plans in Razorpay dashboard', s: 'todo', note: 'Orders work but no recurring subscription plans set up' },
+        { t: 'Create plans in Razorpay dashboard', s: 'todo' },
         { t: 'Subscription webhooks (charged, failed, cancelled)', s: 'todo' },
         { t: 'Monthly credit reset via webhook', s: 'todo' },
       ]},
-      { label: 'Automated alerts', items: [
-        { t: 'Resend account set up', s: 'part', note: 'Code written, domain DNS not verified yet' },
-        { t: 'Approval / rejection email to doctor', s: 'part', note: 'Code ready, Resend domain pending' },
+      { label: 'Email notifications (Resend)', items: [
+        { t: 'Resend account + domain verified', s: 'done' },
+        { t: 'New signup notification to both admin emails', s: 'done' },
+        { t: 'Approval / rejection email to doctor', s: 'done' },
         { t: 'Low-credit email (20 + 5 remaining)', s: 'todo' },
         { t: 'Payment failure email', s: 'todo' },
         { t: 'Renewal confirmation email', s: 'todo' },
       ]},
-    ]
-  },
-  {
-    num: 'Phase 4',
-    title: 'Practice learning RAG',
-    week: 'Week 8–10',
-    sections: [
+    ]},
+    { id: 4, num: 'Phase 4', title: 'Practice learning RAG', week: 'Week 8–10', startWeek: 8, durationWeeks: 3, sections: [
       { label: 'Case embedding pipeline', items: [
         { t: 'case_embeddings table', s: 'todo' },
         { t: 'Auto-embed case summary on completion', s: 'todo' },
         { t: 'Outcome rating UI (Improved / No change / Worse)', s: 'todo' },
         { t: 'Weight similarity search by outcome rating', s: 'todo' },
-        { t: 'Doctor\'s past similar cases in remedy analysis', s: 'todo' },
+        { t: "Doctor's past similar cases in remedy analysis", s: 'todo' },
         { t: 'Show top 3 similar past cases alongside suggestion', s: 'todo' },
       ]},
-    ]
-  },
-  {
-    num: 'Phase 5',
-    title: 'Landing page + go live',
-    week: 'Week 10–12',
-    sections: [
+    ]},
+    { id: 5, num: 'Phase 5', title: 'Landing page + go live', week: 'Week 10–12', startWeek: 10, durationWeeks: 3, sections: [
       { label: 'Landing page', items: [
         { t: 'Hero, features, pricing, FAQ sections', s: 'done' },
         { t: 'Dark / light mode', s: 'done' },
@@ -232,9 +469,9 @@ const phases = [
         { t: 'Case history per patient', s: 'done' },
         { t: 'Credit usage display', s: 'done' },
         { t: 'Clinic profile / settings', s: 'done' },
+        { t: 'Mobile responsive dashboard', s: 'done' },
         { t: 'Credit usage chart (visual, used vs remaining)', s: 'todo' },
         { t: 'Past cases with outcome ratings', s: 'todo' },
-        { t: 'Mobile responsive dashboard', s: 'todo' },
         { t: 'Account + billing management page', s: 'todo' },
       ]},
       { label: 'Admin dashboard', items: [
@@ -243,16 +480,18 @@ const phases = [
         { t: 'Stats — pending, approved, rejected, total', s: 'done' },
         { t: 'Daily API spend tracking', s: 'todo' },
         { t: 'Cost per doctor + tokens per case', s: 'todo' },
-        { t: 'Cache hit rate monitoring', s: 'todo' },
         { t: 'Monthly revenue + margin view', s: 'todo' },
       ]},
-    ]
-  },
-  {
-    num: 'Phase 6',
-    title: 'Scale + collective intelligence',
-    week: 'Month 4–6',
-    sections: [
+      { label: 'Security', items: [
+        { t: 'Helmet security headers', s: 'done' },
+        { t: 'Rate limiting (global + auth + payment)', s: 'done' },
+        { t: 'API key moved off frontend bundle', s: 'done' },
+        { t: 'Admin password moved to backend', s: 'done' },
+        { t: 'Error details hidden in production', s: 'done' },
+        { t: 'Trust proxy for Railway (X-Forwarded-For)', s: 'done' },
+      ]},
+    ]},
+    { id: 6, num: 'Phase 6', title: 'Scale + collective intelligence', week: 'Month 4–6', startWeek: 13, durationWeeks: 8, sections: [
       { label: 'Collective intelligence', items: [
         { t: 'Anonymise positive outcomes across all doctors', s: 'todo' },
         { t: 'Aggregate case knowledge layer (source: collective)', s: 'todo' },
@@ -268,76 +507,371 @@ const phases = [
         { t: 'Marathi system prompt variant', s: 'todo' },
         { t: 'Language auto-detection', s: 'todo' },
       ]},
-    ]
-  },
-];
+    ]},
+  ]
+};
 
-function countItems(phase) {
+// ── STATE ────────────────────────────────────────────────────
+let DATA = JSON.parse(localStorage.getItem('similia_tracker') || 'null') || JSON.parse(JSON.stringify(DEFAULT_DATA));
+const TOTAL_WEEKS = 20;
+const PHASE_COLORS = ['#0d9488','#7c3aed','#2563eb','#d97706','#dc2626','#16a34a','#64748b'];
+
+// ── HELPERS ──────────────────────────────────────────────────
+function countPhase(phase) {
   let done = 0, part = 0, total = 0;
   phase.sections.forEach(s => s.items.forEach(i => {
     total++;
     if (i.s === 'done') done++;
     else if (i.s === 'part') part++;
   }));
-  return { done, part, total };
+  return { done, part, total, pct: total ? Math.round(((done + part * 0.5) / total) * 100) : 0 };
+}
+function countAll() {
+  let done = 0, part = 0, todo = 0;
+  DATA.phases.forEach(p => p.sections.forEach(s => s.items.forEach(i => {
+    if (i.s === 'done') done++;
+    else if (i.s === 'part') part++;
+    else todo++;
+  })));
+  const total = done + part + todo;
+  return { done, part, todo, total, pct: total ? Math.round(((done + part * 0.5) / total) * 100) : 0 };
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function saveData() {
+  DATA.lastUpdated = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  localStorage.setItem('similia_tracker', JSON.stringify(DATA));
+  renderAll();
+  showToast('✓ Saved to browser');
+}
+function svgIcon(type) {
+  if (type === 'done') return `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" style="color:var(--green)"><path d="M20 6L9 17l-5-5"/></svg>`;
+  if (type === 'part') return `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" style="color:var(--amber)"><path d="M5 12h14"/></svg>`;
+  return `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="12" cy="12" r="9"/></svg>`;
 }
 
-function pct(done, part, total) {
-  return Math.round(((done + part * 0.5) / total) * 100);
+// ── NAVIGATION ───────────────────────────────────────────────
+const pageTitles = { overview: 'Overview', phases: 'All Phases', gantt: 'Gantt Chart', analytics: 'Analytics', edit: 'Edit Tasks' };
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles[id] || id;
+  closeSidebar();
+  if (id === 'gantt') renderGantt();
+  if (id === 'analytics') renderAnalytics();
+  if (id === 'edit') { populatePhaseSelect(); renderEditTable(); }
+}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').style.display = 'block'; }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').style.display = 'none'; }
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-label').textContent = isDark ? 'Dark mode' : 'Light mode';
 }
 
-function fillColor(p) {
-  if (p >= 80) return 'fill-done';
-  if (p >= 30) return 'fill-part';
-  return 'fill-todo';
-}
+// ── OVERVIEW ─────────────────────────────────────────────────
+function renderOverview() {
+  const c = countAll();
+  document.getElementById('overall-pct-badge').textContent = c.pct + '% done';
+  document.getElementById('last-updated').textContent = DATA.lastUpdated;
 
-const container = document.getElementById('phases');
+  // Stat cards
+  document.getElementById('stat-grid').innerHTML = [
+    { val: c.pct + '%', lbl: 'Overall done', sub: 'across all phases', cls: 'c-teal' },
+    { val: c.done,      lbl: 'Tasks complete', sub: 'shipped', cls: 'c-green' },
+    { val: c.part,      lbl: 'In progress', sub: 'partial / partial', cls: 'c-amber' },
+    { val: c.todo,      lbl: 'Not started', sub: 'remaining', cls: 'c-muted' },
+    { val: c.total,     lbl: 'Total tasks', sub: 'tracked', cls: 'c-teal' },
+    { val: DATA.phases.length, lbl: 'Phases', sub: 'in plan', cls: 'c-muted' },
+  ].map(s => `<div class="stat-card"><div class="val ${s.cls}">${s.val}</div><div class="lbl">${s.lbl}</div><div class="sub">${s.sub}</div></div>`).join('');
 
-phases.forEach((phase, idx) => {
-  const { done, part, total } = countItems(phase);
-  const p = pct(done, part, total);
-  const fc = fillColor(p);
-
-  const el = document.createElement('div');
-  el.className = 'phase';
-
-  const itemsHtml = phase.sections.map(s => `
-    <div class="section-label">${s.label}</div>
-    ${s.items.map(i => `
-      <div class="item">
-        <div class="status-icon s-${i.s}">
-          <i class="ti ti-${i.s === 'done' ? 'check' : i.s === 'part' ? 'minus' : 'circle'}" aria-hidden="true"></i>
-        </div>
-        <div class="item-text">
-          ${i.t}
-          ${i.note ? `<div class="item-note">${i.note}</div>` : ''}
-        </div>
-        <span class="badge b-${i.s}">${i.s === 'done' ? 'done' : i.s === 'part' ? 'partial' : 'todo'}</span>
+  // Phase progress bars
+  document.getElementById('phase-bars').innerHTML = DATA.phases.map((ph, i) => {
+    const { done, total, pct } = countPhase(ph);
+    const col = PHASE_COLORS[i % PHASE_COLORS.length];
+    return `<div class="pbar-row">
+      <div class="pbar-top">
+        <div class="pbar-name">${ph.num} · ${ph.title}</div>
+        <div class="pbar-pct" style="color:${col}">${pct}%</div>
       </div>
-    `).join('')}
-  `).join('');
+      <div class="pbar-track"><div class="pbar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div class="pbar-meta">${done} of ${total} tasks done · ${ph.week}</div>
+    </div>`;
+  }).join('');
 
-  el.innerHTML = `
-    <div class="phase-header" onclick="toggle(${idx})">
-      <span class="phase-num">${phase.num}</span>
-      <span class="phase-title">${phase.title}</span>
-      <span class="phase-meta">${done}/${total} done · ${p}%</span>
-      <i class="ti ti-chevron-down chevron" id="chev-${idx}" aria-hidden="true"></i>
-    </div>
-    <div class="progress-bar"><div class="progress-fill ${fc}" style="width:${p}%"></div></div>
-    <div class="items" id="items-${idx}">${itemsHtml}</div>
-  `;
-
-  container.appendChild(el);
-});
-
-function toggle(idx) {
-  const items = document.getElementById('items-' + idx);
-  const chev = document.getElementById('chev-' + idx);
-  const open = items.classList.toggle('open');
-  chev.classList.toggle('open', open);
+  // Activity
+  const activities = [];
+  DATA.phases.forEach(ph => {
+    ph.sections.forEach(s => {
+      s.items.filter(i => i.s === 'done').forEach(i => activities.push({ ph: ph.num, t: i.t, s: 'done' }));
+      s.items.filter(i => i.s === 'part').forEach(i => activities.push({ ph: ph.num, t: i.t, s: 'part' }));
+    });
+  });
+  const recent = activities.slice(-8).reverse();
+  document.getElementById('activity-list').innerHTML = recent.map(a => `
+    <div class="activity-item">
+      <div class="activity-dot" style="background:${a.s === 'done' ? 'var(--green)' : 'var(--amber)'}"></div>
+      <div>
+        <div class="activity-text">${a.t}</div>
+        <div class="activity-time">${a.ph} · ${a.s === 'done' ? '✓ Complete' : '⏳ In progress'}</div>
+      </div>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:13px;padding:12px;">No completed tasks yet.</div>';
 }
 
-toggle(0);
+// ── ALL PHASES ────────────────────────────────────────────────
+function renderPhases() {
+  document.getElementById('phases-list').innerHTML = DATA.phases.map((ph, idx) => {
+    const { done, part, total, pct } = countPhase(ph);
+    const col = PHASE_COLORS[idx % PHASE_COLORS.length];
+    const barCls = pct >= 80 ? 'gb-done' : pct >= 30 ? 'gb-part' : 'gb-todo';
+    const itemsHtml = ph.sections.map(s => `
+      <div class="sec-lbl">${s.label}</div>
+      ${s.items.map(i => `
+        <div class="task">
+          <div class="task-icon t-${i.s}">${svgIcon(i.s)}</div>
+          <div class="task-body">
+            <div class="task-name">${i.t}</div>
+            ${i.note ? `<div class="task-note">${i.note}</div>` : ''}
+          </div>
+          <span class="task-badge b-${i.s}">${i.s}</span>
+        </div>`).join('')}`).join('');
+
+    return `<div class="phase-card">
+      <div class="phase-header" onclick="togglePhase(${idx})">
+        <span class="phase-num" style="background:${col}18;color:${col}">${ph.num}</span>
+        <div class="phase-info">
+          <div class="phase-title">${ph.title}</div>
+          <div class="phase-sub">${ph.week}</div>
+        </div>
+        <div class="phase-stats">
+          <div class="phase-pct" style="color:${col}">${pct}%</div>
+          <div class="phase-count">${done}/${total} done</div>
+        </div>
+        <svg class="chev" id="phchev-${idx}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="phase-bar"><div class="phase-fill ${barCls}" style="width:${pct}%"></div></div>
+      <div class="phase-body" id="phbody-${idx}">${itemsHtml}</div>
+    </div>`;
+  }).join('');
+}
+function togglePhase(idx) {
+  const body = document.getElementById('phbody-' + idx);
+  const chev = document.getElementById('phchev-' + idx);
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+// ── GANTT ─────────────────────────────────────────────────────
+function renderGantt() {
+  const W = TOTAL_WEEKS;
+  const weekPct = (w) => ((w - 1) / W * 100).toFixed(2);
+  const widthPct = (d) => (d / W * 100).toFixed(2);
+  const currentWeek = 1; // Update this manually or compute from date
+
+  let html = `<div class="gantt-header">
+    <div class="gantt-phase-col">Phase</div>
+    <div class="gantt-weeks">`;
+  for (let w = 1; w <= W; w++) {
+    html += `<div class="gantt-week">W${w}</div>`;
+  }
+  html += `</div></div>`;
+
+  DATA.phases.forEach((ph, i) => {
+    const { pct } = countPhase(ph);
+    const cls = pct >= 80 ? 'gb-done' : pct >= 30 ? 'gb-part' : 'gb-todo';
+    const col = PHASE_COLORS[i % PHASE_COLORS.length];
+    const left = weekPct(ph.startWeek || 1);
+    const width = widthPct(ph.durationWeeks || 2);
+
+    html += `<div class="gantt-row">
+      <div class="gantt-label">
+        <div class="p" style="color:${col}">${ph.num}</div>
+        <div class="s">${ph.title.split('—')[0].trim()}</div>
+      </div>
+      <div class="gantt-track" style="position:relative;">`;
+
+    // Week grid lines
+    for (let w = 1; w <= W; w++) {
+      html += `<div class="gantt-bg-week" style="left:${weekPct(w)}%"></div>`;
+    }
+
+    // Now line
+    html += `<div class="now-line" style="left:${weekPct(currentWeek)}%"><div class="now-label" style="left:${weekPct(currentWeek)}%">now</div></div>`;
+
+    // Bar
+    html += `<div class="gantt-bar ${cls}" style="left:${left}%;width:${width}%;min-width:20px;" title="${ph.title} · ${pct}% done">
+        ${pct}%
+      </div>`;
+
+    html += `</div></div>`;
+  });
+
+  document.getElementById('gantt-chart').innerHTML = html;
+}
+
+// ── ANALYTICS ────────────────────────────────────────────────
+function renderAnalytics() {
+  const c = countAll();
+
+  // Donut SVG
+  const size = 160, cx = 80, cy = 80, r = 60, stroke = 22;
+  const circ = 2 * Math.PI * r;
+  const segments = [
+    { val: c.done, color: '#16a34a', label: 'Complete' },
+    { val: c.part, color: '#d97706', label: 'Partial' },
+    { val: c.todo, color: '#e2e8f0', label: 'Todo' },
+  ];
+  let offset = 0;
+  const arcs = segments.map(seg => {
+    const frac = c.total > 0 ? seg.val / c.total : 0;
+    const dash = frac * circ;
+    const gap = circ - dash;
+    const arc = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${seg.color}" stroke-width="${stroke}"
+      stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}"
+      stroke-dashoffset="${(-offset).toFixed(2)}"
+      transform="rotate(-90 ${cx} ${cy})" />`;
+    offset += frac * circ;
+    return arc;
+  }).join('');
+
+  document.getElementById('donut-wrap').innerHTML = `
+    <svg width="${size}" height="${size}" class="donut-svg" viewBox="0 0 ${size} ${size}">
+      ${arcs}
+      <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="22" font-weight="800" fill="var(--text)" class="donut-center-text">${c.pct}%</text>
+      <text x="${cx}" y="${cy + 12}" text-anchor="middle" font-size="11" fill="var(--muted)" class="donut-center-text">complete</text>
+    </svg>
+    <div class="donut-legend">
+      ${segments.map(s => `
+        <div class="legend-item">
+          <div class="legend-dot" style="background:${s.color}"></div>
+          <span><strong>${s.val}</strong> ${s.label}</span>
+        </div>`).join('')}
+      <div class="legend-item" style="margin-top:4px;font-size:11px;color:var(--muted);">Total: ${c.total} tasks</div>
+    </div>`;
+
+  // Phase breakdown bar chart
+  const maxPct = 100;
+  document.getElementById('phase-breakdown').innerHTML = DATA.phases.map((ph, i) => {
+    const { done, part, total, pct } = countPhase(ph);
+    const col = PHASE_COLORS[i % PHASE_COLORS.length];
+    return `<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+        <span style="font-weight:600;color:${col}">${ph.num}</span>
+        <span style="color:var(--muted)">${done}/${total}</span>
+      </div>
+      <div style="height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:5px;transition:.5s;"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Analytics table
+  document.getElementById('analytics-tbody').innerHTML = DATA.phases.map((ph, i) => {
+    const { done, part, total, pct } = countPhase(ph);
+    const todo = total - done - part;
+    const col = PHASE_COLORS[i % PHASE_COLORS.length];
+    return `<tr>
+      <td style="font-weight:600;color:${col}">${ph.num}</td>
+      <td style="color:var(--green);font-weight:600">${done}</td>
+      <td style="color:var(--amber);font-weight:600">${part}</td>
+      <td style="color:var(--muted)">${todo}</td>
+      <td>${total}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;min-width:60px;">
+            <div style="height:100%;width:${pct}%;background:${col};border-radius:4px;"></div>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:${col};min-width:32px;">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── EDIT ─────────────────────────────────────────────────────
+function populatePhaseSelect() {
+  const sel = document.getElementById('edit-phase-select');
+  sel.innerHTML = DATA.phases.map((ph, i) => `<option value="${i}">${ph.num} — ${ph.title.split('—')[0].trim()}</option>`).join('');
+}
+function renderEditTable() {
+  const phIdx = parseInt(document.getElementById('edit-phase-select').value);
+  const ph = DATA.phases[phIdx];
+  const rows = [];
+  ph.sections.forEach((sec, si) => {
+    sec.items.forEach((item, ii) => {
+      rows.push({ si, ii, sec: sec.label, item });
+    });
+  });
+
+  document.getElementById('edit-tbody').innerHTML = rows.map(({ si, ii, sec, item }) => `
+    <tr>
+      <td><input value="${item.t.replace(/"/g,'&quot;')}" onchange="updateTask(${phIdx},${si},${ii},'t',this.value)" /></td>
+      <td><input value="${sec}" onchange="updateSection(${phIdx},${si},this.value)" /></td>
+      <td>
+        <select class="status-sel sel-${item.s}" onchange="updateTask(${phIdx},${si},${ii},'s',this.value);this.className='status-sel sel-'+this.value">
+          <option value="done" ${item.s==='done'?'selected':''}>done</option>
+          <option value="part" ${item.s==='part'?'selected':''}>partial</option>
+          <option value="todo" ${item.s==='todo'?'selected':''}>todo</option>
+        </select>
+      </td>
+      <td><input value="${(item.note||'').replace(/"/g,'&quot;')}" placeholder="Optional note…" onchange="updateTask(${phIdx},${si},${ii},'note',this.value)" /></td>
+      <td><button class="del-btn" onclick="deleteTask(${phIdx},${si},${ii})" title="Delete">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button></td>
+    </tr>`).join('');
+}
+function updateTask(phIdx, si, ii, key, val) {
+  DATA.phases[phIdx].sections[si].items[ii][key] = val;
+}
+function updateSection(phIdx, si, val) {
+  DATA.phases[phIdx].sections[si].label = val;
+}
+function deleteTask(phIdx, si, ii) {
+  if (!confirm('Delete this task?')) return;
+  DATA.phases[phIdx].sections[si].items.splice(ii, 1);
+  renderEditTable();
+}
+function addTask() {
+  const phIdx = parseInt(document.getElementById('edit-phase-select').value);
+  const ph = DATA.phases[phIdx];
+  const lastSec = ph.sections[ph.sections.length - 1];
+  lastSec.items.push({ t: 'New task', s: 'todo', note: '' });
+  renderEditTable();
+  showToast('Task added — edit and save');
+}
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(DATA, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'similia_tracker_data.json'; a.click();
+  showToast('Exported tracker data');
+}
+function importJSON(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      DATA = JSON.parse(ev.target.result);
+      localStorage.setItem('similia_tracker', JSON.stringify(DATA));
+      renderAll();
+      showToast('✓ Imported successfully');
+    } catch { showToast('Invalid JSON file'); }
+  };
+  reader.readAsText(file);
+}
+
+// ── MAIN RENDER ───────────────────────────────────────────────
+function renderAll() {
+  renderOverview();
+  renderPhases();
+}
+
+renderAll();
 </script>
+</body>
+</html>
